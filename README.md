@@ -1,4 +1,4 @@
-kaggle-dogs-vs-cats
-===================
+kaggle-cifar10
+==============
 
-Code for Kaggle Dovs vs. Cats competition
+Code for Kaggle Dogs vs. Cats competition
