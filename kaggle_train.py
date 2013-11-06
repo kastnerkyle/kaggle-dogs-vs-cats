@@ -4,7 +4,7 @@ from pylearn2.costs.mlp.dropout import Dropout
 from pylearn2.training_algorithms import sgd, learning_rule
 from pylearn2.termination_criteria import MonitorBased
 from kaggle_dataset import kaggle_dogsvscats
-from pylearn2.datasets import preprocessing
+from pylearn2.datasets import preprocessing, cifar10
 from pylearn2.space import Conv2DSpace
 from pylearn2.train import Train
 from pylearn2.train_extensions import best_params
@@ -15,10 +15,15 @@ trn = kaggle_dogsvscats('train',
                         datapath='/home/kkastner/kaggle_data/kaggle-dogs-vs-cats',
                         axes=('c', 0, 1, 'b'))
 
-tst = kaggle_dogsvscats('valid',
+asi = kaggle_dogsvscats('valid',
                         one_hot=True,
                         datapath='/home/kkastner/kaggle_data/kaggle-dogs-vs-cats',
                         axes=('c', 0, 1, 'b'))
+
+tst = cifar10.CIFAR10('test',
+                      toronto_prepro=False,
+                      one_hot=True,
+                      axes=('c', 0, 1, 'b'))
 
 in_space = Conv2DSpace(shape=(32, 32),
                        num_channels=3,
@@ -70,7 +75,7 @@ l4 = maxout.Maxout(layer_name='l4',
                    max_col_norm=1.9)
 
 output = mlp.Softmax(layer_name='y',
-                     n_classes=2,
+                     n_classes=10,
                      irange=.005,
                      max_col_norm=1.9365)
 
@@ -79,9 +84,9 @@ layers = [l1, l2, l3, l4, output]
 mdl = mlp.MLP(layers,
               input_space=in_space)
 
-trainer = sgd.SGD(learning_rate=.001,
+trainer = sgd.SGD(learning_rate=.1,
                   batch_size=128,
-                  learning_rule=learning_rule.Momentum(.8),
+                  learning_rule=learning_rule.Momentum(.5),
                   # Remember, default dropout is .5
                   cost=Dropout(input_include_probs={'l1': .8},
                                input_scales={'l1': 1.}),
@@ -90,6 +95,7 @@ trainer = sgd.SGD(learning_rate=.001,
                       prop_decrease=0.,
                       N=10),
                   monitoring_dataset={'valid': tst,
+                                      'asirra': asi,
                                       'train': trn})
 
 preprocessor = preprocessing.ZCA()
@@ -101,7 +107,7 @@ watcher = best_params.MonitorBasedSaveBest(
     channel_name='valid_y_misclass',
     save_path='kaggle_dogsvscats_maxout_zca.pkl')
 
-velocity = learning_rule.MomentumAdjustor(final_momentum=.9,
+velocity = learning_rule.MomentumAdjustor(final_momentum=.6,
                                           start=1,
                                           saturate=250)
 
