@@ -15,15 +15,15 @@ trn = kaggle_dogsvscats('train',
                         datapath='/home/kkastner/kaggle_data/kaggle-dogs-vs-cats',
                         axes=('c', 0, 1, 'b'))
 
-asi = kaggle_dogsvscats('valid',
-                        one_hot=True,
-                        datapath='/home/kkastner/kaggle_data/kaggle-dogs-vs-cats',
-                        axes=('c', 0, 1, 'b'))
-
 tst = cifar10.CIFAR10('test',
                       toronto_prepro=False,
                       one_hot=True,
                       axes=('c', 0, 1, 'b'))
+
+tst = kaggle_dogsvscats('test',
+                        one_hot=True,
+                        datapath='/home/kkastner/kaggle_data/kaggle-dogs-vs-cats',
+                        axes=('c', 0, 1, 'b'))
 
 in_space = Conv2DSpace(shape=(32, 32),
                        num_channels=3,
@@ -75,7 +75,7 @@ l4 = maxout.Maxout(layer_name='l4',
                    max_col_norm=1.9)
 
 output = mlp.Softmax(layer_name='y',
-                     n_classes=10,
+                     n_classes=2,
                      irange=.005,
                      max_col_norm=1.9365)
 
@@ -95,7 +95,6 @@ trainer = sgd.SGD(learning_rate=.1,
                       prop_decrease=0.,
                       N=10),
                   monitoring_dataset={'valid': tst,
-                                      'asirra': asi,
                                       'train': trn})
 
 preprocessor = preprocessing.ZCA()

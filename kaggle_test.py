@@ -26,21 +26,19 @@ preprocessor = serial.load('kaggle_dogsvscats_preprocessor.pkl')
 mdl = serial.load('kaggle_dogsvscats_maxout_zca.pkl')
 
 fname = 'kaggle_dogsvscats_results.csv'
-test_size = 12500
+ds = kaggle_dogsvscats('test',
+                        datapath='/home/kkastner/kaggle_data/kaggle-dogs-vs-cats',
+                        one_hot=True,
+                        axes=('c', 0, 1, 'b'))
+test_size = ds.X.shape[0]
 sets = 1
 res = np.zeros((sets, test_size), dtype='float32')
 for n, i in enumerate([test_size * x for x in range(sets)]):
-    ds = kaggle_dogsvscats('test',
-                            datapath='/home/kkastner/kaggle_data/kaggle-dogs-vs-cats',
-                            one_hot=True,
-                            axes=('c', 0, 1, 'b'))
-    print ds.X.shape
-    print "LOADED"
     ds.apply_preprocessor(preprocessor=preprocessor, can_fit=False)
     yhat = process(mdl, ds)
     res[n, :] = yhat.ravel()
 
-converted_results = [['id', 'label']] + [[n + 1, int(x)]
+converted_results = [['id', 'label']] + [[n + 1, int(x), ds.y[n]]
                                          for n, x in enumerate(res.ravel())]
 with open(fname, 'w') as f:
     csv_f = csv.writer(f, delimiter=',', quoting=csv.QUOTE_NONE)
