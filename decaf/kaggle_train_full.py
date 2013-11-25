@@ -2,14 +2,13 @@
 from pylearn2.models import mlp
 from pylearn2.costs.mlp.dropout import Dropout
 from pylearn2.training_algorithms import sgd, learning_rule
-from pylearn2.termination_criteria import MonitorBased
+from pylearn2.termination_criteria import EpochCounter
 from pylearn2.datasets import DenseDesignMatrix
 from pylearn2.train import Train
 from pylearn2.train_extensions import best_params
 from pylearn2.space import VectorSpace
 import pickle
 import numpy as np
-from sklearn.cross_validation import train_test_split
 
 
 def to_one_hot(l):
@@ -21,12 +20,8 @@ def to_one_hot(l):
 x = pickle.load(open('saved_x.pkl', 'rb'))
 y = pickle.load(open('saved_y.pkl', 'rb'))
 y = to_one_hot(y)
-X_train, X_test, y_train, y_test = train_test_split(x, y,
-                                                    test_size=.2,
-                                                    random_state=42)
 in_space = VectorSpace(dim=x.shape[1])
-trn = DenseDesignMatrix(X=X_train, y=y_train)
-tst = DenseDesignMatrix(X=X_test, y=y_test)
+full = DenseDesignMatrix(X=x, y=y)
 
 l1 = mlp.RectifiedLinear(layer_name='l1',
                          sparse_init=15,
@@ -64,27 +59,23 @@ trainer = sgd.SGD(learning_rate=.01,
                   # Remember, default dropout is .5
                   cost=Dropout(input_include_probs={'l1': .8},
                                input_scales={'l1': 1.}),
-                  termination_criterion=MonitorBased(
-                      channel_name='valid_y_misclass',
-                      prop_decrease=0.,
-                      N=100),
-                  monitoring_dataset={'valid': tst,
-                                      'train': trn})
+                  termination_criterion=EpochCounter(100),
+                  monitoring_dataset={'train': full})
 
 watcher = best_params.MonitorBasedSaveBest(
-    channel_name='valid_y_misclass',
+    channel_name='train_y_misclass',
     save_path='saved_clf.pkl')
 
-velocity = learning_rule.MomentumAdjustor(final_momentum=.8,
+velocity = learning_rule.MomentumAdjustor(final_momentum=.9,
                                           start=1,
                                           saturate=250)
 
 decay = sgd.LinearDecayOverEpoch(start=1,
                                  saturate=250,
                                  decay_factor=.0005)
-experiment = Train(dataset=trn,
+experiment = Train(dataset=full,
                    model=mdl,
                    algorithm=trainer,
-                   extensions=[watcher])
+                   extensions=[watcher, velocity, decay])
 
 experiment.main_loop()

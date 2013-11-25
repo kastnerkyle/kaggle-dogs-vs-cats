@@ -58,7 +58,9 @@ layers = [l1, l2, l3, l4, output]
 mdl = mlp.MLP(layers,
               input_space=in_space)
 
-trainer = sgd.SGD(learning_rate=.01,
+lr = .0008
+epochs = 500
+trainer = sgd.SGD(learning_rate=lr,
                   batch_size=128,
                   learning_rule=learning_rule.Momentum(.5),
                   # Remember, default dropout is .5
@@ -67,7 +69,7 @@ trainer = sgd.SGD(learning_rate=.01,
                   termination_criterion=MonitorBased(
                       channel_name='valid_y_misclass',
                       prop_decrease=0.,
-                      N=100),
+                      N=epochs),
                   monitoring_dataset={'valid': tst,
                                       'train': trn})
 
@@ -75,16 +77,16 @@ watcher = best_params.MonitorBasedSaveBest(
     channel_name='valid_y_misclass',
     save_path='saved_clf.pkl')
 
-velocity = learning_rule.MomentumAdjustor(final_momentum=.8,
+velocity = learning_rule.MomentumAdjustor(final_momentum=.9,
                                           start=1,
                                           saturate=250)
 
 decay = sgd.LinearDecayOverEpoch(start=1,
                                  saturate=250,
-                                 decay_factor=.0005)
+                                 decay_factor=.1 * lr)
 experiment = Train(dataset=trn,
                    model=mdl,
                    algorithm=trainer,
-                   extensions=[watcher])
+                   extensions=[watcher, velocity, decay])
 
 experiment.main_loop()
