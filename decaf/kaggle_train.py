@@ -5,7 +5,7 @@ from pylearn2.training_algorithms import sgd, learning_rule
 from pylearn2.termination_criteria import MonitorBased
 from pylearn2.datasets import DenseDesignMatrix
 from pylearn2.train import Train
-from pylearn2.train_extensions import best_params
+from pylearn2.train_extensions import best_params, window_flip
 from pylearn2.space import VectorSpace
 import pickle
 import numpy as np
@@ -84,6 +84,11 @@ velocity = learning_rule.MomentumAdjustor(final_momentum=.98,
 decay = sgd.LinearDecayOverEpoch(start=1,
                                  saturate=100,
                                  decay_factor=.05 * lr)
+
+win = window_flip.WindowAndFlipC01B(pad_randomized=8,
+                                    window_shape=(32, 32),
+                                    randomize=[trn],
+                                    center=[tst])
 experiment = Train(dataset=trn,
                    model=mdl,
                    algorithm=trainer,
