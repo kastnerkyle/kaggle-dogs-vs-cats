@@ -29,37 +29,38 @@ trn = DenseDesignMatrix(X=X_train, y=y_train)
 tst = DenseDesignMatrix(X=X_test, y=y_test)
 
 l1 = mlp.RectifiedLinear(layer_name='l1',
-                         sparse_init=15,
+                         irange=.001,
                          dim=5000,
                          max_col_norm=1.)
 
 l2 = mlp.RectifiedLinear(layer_name='l2',
-                         sparse_init=15,
+                         irange=.001,
                          dim=5000,
                          max_col_norm=1.)
 
 l3 = mlp.RectifiedLinear(layer_name='l3',
-                         sparse_init=15,
-                         dim=5000,
+                         irange=.001,
+                         dim=1000,
                          max_col_norm=1.)
 
 l4 = mlp.RectifiedLinear(layer_name='l4',
-                         sparse_init=15,
-                         dim=5000,
+                         irange=.001,
+                         dim=1000,
                          max_col_norm=1.)
 
-output = mlp.Softmax(layer_name='y',
-                     n_classes=2,
-                     irange=.005,
-                     max_col_norm=1.9365)
+output = mlp.HingeLoss(layer_name='y',
+                       irange=.0001)
 
 layers = [l1, l2, l3, l4, output]
+layers = [l1, l2, l3, output]
+layers = [l1, l2, output]
+#layers = [l1, output]
 
 mdl = mlp.MLP(layers,
               input_space=in_space)
 
 lr = .001
-epochs = 20
+epochs = 100
 trainer = sgd.SGD(learning_rate=lr,
                   batch_size=128,
                   learning_rule=learning_rule.Momentum(.5),
@@ -92,6 +93,6 @@ win = window_flip.WindowAndFlipC01B(pad_randomized=8,
 experiment = Train(dataset=trn,
                    model=mdl,
                    algorithm=trainer,
-                   extensions=[watcher, velocity])
+                   extensions=[watcher,decay])
 
 experiment.main_loop()
