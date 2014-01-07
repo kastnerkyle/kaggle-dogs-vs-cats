@@ -40,21 +40,18 @@ l2 = mlp.RectifiedLinear(layer_name='l2',
 
 l3 = mlp.RectifiedLinear(layer_name='l3',
                          irange=.001,
-                         dim=1000,
+                         dim=5000,
                          max_col_norm=1.)
 
 l4 = mlp.RectifiedLinear(layer_name='l4',
                          irange=.001,
-                         dim=1000,
+                         dim=5000,
                          max_col_norm=1.)
 
 output = mlp.HingeLoss(layer_name='y',
                        irange=.0001)
 
 layers = [l1, l2, l3, l4, output]
-layers = [l1, l2, l3, output]
-layers = [l1, l2, output]
-#layers = [l1, output]
 
 mdl = mlp.MLP(layers,
               input_space=in_space)
