@@ -48,7 +48,8 @@ l4 = mlp.RectifiedLinear(layer_name='l4',
                          dim=5000,
                          max_col_norm=1.)
 
-output = mlp.HingeLoss(layer_name='y',
+output = mlp.HingeLoss(n_classes=2,
+                       layer_name='y',
                        irange=.0001)
 
 layers = [l1, l2, l3, l4, output]
