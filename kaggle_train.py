@@ -1,90 +1,65 @@
 #!/usr/bin/env python
-from pylearn2.models import mlp, maxout
+from pylearn2.models import mlp
 from pylearn2.costs.mlp.dropout import Dropout
 from pylearn2.training_algorithms import sgd, learning_rule
 from pylearn2.termination_criteria import MonitorBased
-from kaggle_dataset import kaggle_dogsvscats
-from pylearn2.datasets import preprocessing, cifar10
-from pylearn2.space import Conv2DSpace
+from pylearn2.datasets import DenseDesignMatrix
 from pylearn2.train import Train
-from pylearn2.train_extensions import best_params
-from pylearn2.utils import serial
+from pylearn2.train_extensions import best_params, window_flip
+from pylearn2.space import VectorSpace
+import pickle
+import numpy as np
+from sklearn.cross_validation import train_test_split
 
-trn = kaggle_dogsvscats('train',
-                        one_hot=True,
-                        datapath='/home/kkastner/kaggle_data/kaggle-dogs-vs-cats',
-                        axes=('c', 0, 1, 'b'))
 
-tst = cifar10.CIFAR10('test',
-                      toronto_prepro=False,
-                      one_hot=True,
-                      axes=('c', 0, 1, 'b'))
+def to_one_hot(l):
+    out = np.zeros((len(l), len(set(l))))
+    for n, i in enumerate(l):
+        out[n, i] = 1.
+    return out
 
-tst = kaggle_dogsvscats('test',
-                        one_hot=True,
-                        datapath='/home/kkastner/kaggle_data/kaggle-dogs-vs-cats',
-                        axes=('c', 0, 1, 'b'))
+x = pickle.load(open('saved_x.pkl', 'rb'))
+y = pickle.load(open('saved_y.pkl', 'rb'))
+y = to_one_hot(y)
+X_train, X_test, y_train, y_test = train_test_split(x, y,
+                                                    test_size=.2,
+                                                    random_state=42)
+in_space = VectorSpace(dim=x.shape[1])
+trn = DenseDesignMatrix(X=X_train, y=y_train)
+tst = DenseDesignMatrix(X=X_test, y=y_test)
 
-in_space = Conv2DSpace(shape=(32, 32),
-                       num_channels=3,
-                       axes=('c', 0, 1, 'b'))
+l1 = mlp.RectifiedLinear(layer_name='l1',
+                         irange=.001,
+                         dim=5000,
+                         max_col_norm=1.)
 
-l1 = maxout.MaxoutConvC01B(layer_name='l1',
-                           pad=4,
-                           tied_b=1,
-                           W_lr_scale=.05,
-                           b_lr_scale=.05,
-                           num_channels=48,
-                           num_pieces=2,
-                           kernel_shape=(8, 8),
-                           pool_shape=(4, 4),
-                           pool_stride=(2, 2),
-                           irange=.005,
-                           max_kernel_norm=.9)
+l2 = mlp.RectifiedLinear(layer_name='l2',
+                         irange=.001,
+                         dim=5000,
+                         max_col_norm=1.)
 
-l2 = maxout.MaxoutConvC01B(layer_name='l2',
-                           pad=3,
-                           tied_b=1,
-                           W_lr_scale=.05,
-                           b_lr_scale=.05,
-                           num_channels=128,
-                           num_pieces=2,
-                           kernel_shape=(8, 8),
-                           pool_shape=(4, 4),
-                           pool_stride=(2, 2),
-                           irange=.005,
-                           max_kernel_norm=1.9365)
+l3 = mlp.RectifiedLinear(layer_name='l3',
+                         irange=.001,
+                         dim=5000,
+                         max_col_norm=1.)
 
-l3 = maxout.MaxoutConvC01B(layer_name='l3',
-                           pad=3,
-                           tied_b=1,
-                           W_lr_scale=.05,
-                           b_lr_scale=.05,
-                           num_channels=128,
-                           num_pieces=2,
-                           kernel_shape=(5, 5),
-                           pool_shape=(2, 2),
-                           pool_stride=(2, 2),
-                           irange=.005,
-                           max_kernel_norm=1.9365)
+l4 = mlp.RectifiedLinear(layer_name='l4',
+                         irange=.001,
+                         dim=5000,
+                         max_col_norm=1.)
 
-l4 = maxout.Maxout(layer_name='l4',
-                   irange=.005,
-                   num_units=240,
-                   num_pieces=5,
-                   max_col_norm=1.9)
-
-output = mlp.Softmax(layer_name='y',
-                     n_classes=2,
-                     irange=.005,
-                     max_col_norm=1.9365)
+output = mlp.HingeLoss(n_classes=2,
+                       layer_name='y',
+                       irange=.0001)
 
 layers = [l1, l2, l3, l4, output]
 
 mdl = mlp.MLP(layers,
               input_space=in_space)
 
-trainer = sgd.SGD(learning_rate=.1,
+lr = .001
+epochs = 100
+trainer = sgd.SGD(learning_rate=lr,
                   batch_size=128,
                   learning_rule=learning_rule.Momentum(.5),
                   # Remember, default dropout is .5
@@ -93,30 +68,29 @@ trainer = sgd.SGD(learning_rate=.1,
                   termination_criterion=MonitorBased(
                       channel_name='valid_y_misclass',
                       prop_decrease=0.,
-                      N=10),
+                      N=epochs),
                   monitoring_dataset={'valid': tst,
                                       'train': trn})
 
-preprocessor = preprocessing.ZCA()
-trn.apply_preprocessor(preprocessor=preprocessor, can_fit=True)
-tst.apply_preprocessor(preprocessor=preprocessor, can_fit=False)
-serial.save('kaggle_dogsvscats_preprocessor.pkl', preprocessor)
-
 watcher = best_params.MonitorBasedSaveBest(
     channel_name='valid_y_misclass',
-    save_path='kaggle_dogsvscats_maxout_zca.pkl')
+    save_path='saved_clf.pkl')
 
-velocity = learning_rule.MomentumAdjustor(final_momentum=.6,
+velocity = learning_rule.MomentumAdjustor(final_momentum=.98,
                                           start=1,
-                                          saturate=250)
+                                          saturate=100)
 
 decay = sgd.LinearDecayOverEpoch(start=1,
-                                 saturate=250,
-                                 decay_factor=.01)
+                                 saturate=100,
+                                 decay_factor=.05 * lr)
 
+win = window_flip.WindowAndFlipC01B(pad_randomized=8,
+                                    window_shape=(32, 32),
+                                    randomize=[trn],
+                                    center=[tst])
 experiment = Train(dataset=trn,
                    model=mdl,
                    algorithm=trainer,
-                   extensions=[watcher, velocity, decay])
+                   extensions=[watcher,decay])
 
 experiment.main_loop()
