@@ -39,7 +39,8 @@ l3 = mlp.RectifiedLinear(layer_name='l3',
                          dim=5000,
                          max_col_norm=1.)
 
-output = mlp.HingeLoss(layer_name='y',
+output = mlp.HingeLoss(n_classes=2,
+                       layer_name='y',
                        irange=.0001)
 
 layers = [l1, l2, l3, output]
@@ -55,7 +56,7 @@ trainer = sgd.SGD(learning_rate=lr,
                   # Remember, default dropout is .5
                   cost=Dropout(input_include_probs={'l1': .8},
                                input_scales={'l1': 1.}),
-                  termination_criterion=EpochCounter(200),
+                  termination_criterion=EpochCounter(90),
                   monitoring_dataset={'train': full})
 
 watcher = best_params.MonitorBasedSaveBest(
