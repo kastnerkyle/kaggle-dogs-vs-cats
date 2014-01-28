@@ -50,14 +50,14 @@ l4 = mlp.RectifiedLinear(layer_name='l4',
 
 output = mlp.HingeLoss(n_classes=2,
                        layer_name='y',
-                       irange=.0001)
+                       irange=.001)
 
 layers = [l1, l2, l3, l4, output]
 
 mdl = mlp.MLP(layers,
               input_space=in_space)
 
-lr = .001
+lr = .01
 epochs = 100
 trainer = sgd.SGD(learning_rate=lr,
                   batch_size=128,
@@ -82,12 +82,8 @@ velocity = learning_rule.MomentumAdjustor(final_momentum=.98,
 
 decay = sgd.LinearDecayOverEpoch(start=1,
                                  saturate=100,
-                                 decay_factor=.05 * lr)
+                                 decay_factor=lr*.05)
 
-win = window_flip.WindowAndFlipC01B(pad_randomized=8,
-                                    window_shape=(32, 32),
-                                    randomize=[trn],
-                                    center=[tst])
 experiment = Train(dataset=trn,
                    model=mdl,
                    algorithm=trainer,

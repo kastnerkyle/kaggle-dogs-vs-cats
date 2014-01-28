@@ -53,13 +53,15 @@ layers = [l1, l2, l3, l4, output]
 mdl = mlp.MLP(layers,
               input_space=in_space)
 
+lr = .01
+epochs = 100
 trainer = sgd.SGD(learning_rate=.01,
                   batch_size=128,
                   learning_rule=learning_rule.Momentum(.5),
                   # Remember, default dropout is .5
                   cost=Dropout(input_include_probs={'l1': .8},
                                input_scales={'l1': 1.}),
-                  termination_criterion=EpochCounter(100),
+                  termination_criterion=EpochCounter(epochs),
                   monitoring_dataset={'train': full})
 
 watcher = best_params.MonitorBasedSaveBest(
@@ -72,7 +74,7 @@ velocity = learning_rule.MomentumAdjustor(final_momentum=.9,
 
 decay = sgd.LinearDecayOverEpoch(start=1,
                                  saturate=250,
-                                 decay_factor=.0005)
+                                 decay_factor=lr*.05)
 experiment = Train(dataset=full,
                    model=mdl,
                    algorithm=trainer,
