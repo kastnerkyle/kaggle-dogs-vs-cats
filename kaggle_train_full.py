@@ -54,7 +54,7 @@ mdl = mlp.MLP(layers,
               input_space=in_space)
 
 lr = .01
-epochs = 100
+epochs = 80
 trainer = sgd.SGD(learning_rate=.01,
                   batch_size=128,
                   learning_rule=learning_rule.Momentum(.5),
@@ -75,9 +75,11 @@ velocity = learning_rule.MomentumAdjustor(final_momentum=.9,
 decay = sgd.LinearDecayOverEpoch(start=1,
                                  saturate=250,
                                  decay_factor=lr*.05)
+
 experiment = Train(dataset=full,
                    model=mdl,
                    algorithm=trainer,
                    extensions=[watcher, velocity, decay])
 
-experiment.main_loop()
+if __name__ == "__main__":
+    experiment.main_loop()
