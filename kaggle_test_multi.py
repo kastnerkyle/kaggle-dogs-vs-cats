@@ -7,7 +7,7 @@ from glob import glob
 import pickle
 import numpy as np
 import csv
-
+import gc
 
 def process(mdl, ds, batch_size=100):
     # This batch size must be evenly divisible into number of total samples!
@@ -20,7 +20,7 @@ def process(mdl, ds, batch_size=100):
     for i in xrange(ds.X.shape[0] / batch_size):
         x_arg = ds.X[i * batch_size:(i + 1) * batch_size, :]
         yhat.append(f(x_arg.astype(X.dtype)))
-    return np.array(yhat)
+    return np.array(yhat).ravel()
 
 tst = pickle.load(open('saved_tst.pkl', 'rb'))
 ds = DenseDesignMatrix(X=tst)
@@ -33,13 +33,15 @@ fname = 'results.csv'
 test_size = ds.X.shape[0]
 res = np.zeros((len(clfs), test_size), dtype='float32')
 for n,mdl in enumerate(mdls):
-    res[n, :] = process(mdl, ds, batch_size=50).ravel()
-    print "Processing model ",n
-yhat = np.mean(res, axis=0)
-print yhat.shape
-raise ValueError()
+    res[n, :] = process(mdl, ds, batch_size=500)
+    print "Processed model ",n
+    #Fix for CUDA memory issues - wut?
+    del mdl
+    gc.collect()
+
+yhat = np.round(np.mean(res, axis=0))
 converted_results = [['id', 'label']] + [[n + 1, int(x)]
-                                         for n, x in enumerate(yhat.ravel())]
+                                         for n, x in enumerate(yhat)]
 with open(fname, 'w') as f:
     csv_f = csv.writer(f, delimiter=',', quoting=csv.QUOTE_NONE)
     csv_f.writerows(converted_results)

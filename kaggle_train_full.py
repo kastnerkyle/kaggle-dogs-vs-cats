@@ -10,7 +10,6 @@ from pylearn2.space import VectorSpace
 import pickle
 import numpy as np
 
-
 def to_one_hot(l):
     out = np.zeros((len(l), len(set(l))))
     for n, i in enumerate(l):
@@ -24,29 +23,29 @@ in_space = VectorSpace(dim=x.shape[1])
 full = DenseDesignMatrix(X=x, y=y)
 
 l1 = mlp.RectifiedLinear(layer_name='l1',
-                         sparse_init=15,
+                         irange=.001,
                          dim=5000,
                          max_col_norm=1.)
 
 l2 = mlp.RectifiedLinear(layer_name='l2',
-                         sparse_init=15,
+                         irange=.001,
                          dim=5000,
                          max_col_norm=1.)
 
 l3 = mlp.RectifiedLinear(layer_name='l3',
-                         sparse_init=15,
+                         irange=.001,
                          dim=5000,
                          max_col_norm=1.)
 
 l4 = mlp.RectifiedLinear(layer_name='l4',
-                         sparse_init=15,
+                         irange=.001,
                          dim=5000,
                          max_col_norm=1.)
 
-output = mlp.Softmax(layer_name='y',
-                     n_classes=2,
-                     irange=.005,
-                     max_col_norm=1.9365)
+output = mlp.HingeLoss(layer_name='y',
+                       n_classes=2,
+                       irange=.001)
+
 
 layers = [l1, l2, l3, l4, output]
 
@@ -54,7 +53,7 @@ mdl = mlp.MLP(layers,
               input_space=in_space)
 
 lr = .01
-epochs = 80
+epochs = 100
 trainer = sgd.SGD(learning_rate=.01,
                   batch_size=128,
                   learning_rule=learning_rule.Momentum(.5),
