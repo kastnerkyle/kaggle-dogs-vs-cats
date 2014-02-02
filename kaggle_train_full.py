@@ -23,38 +23,41 @@ in_space = VectorSpace(dim=x.shape[1])
 full = DenseDesignMatrix(X=x, y=y)
 
 l1 = mlp.RectifiedLinear(layer_name='l1',
-                         irange=.001,
+                         sparse_init=12,
                          dim=5000,
                          max_col_norm=1.)
 
 l2 = mlp.RectifiedLinear(layer_name='l2',
-                         irange=.001,
+                         sparse_init=12,
                          dim=5000,
                          max_col_norm=1.)
 
 l3 = mlp.RectifiedLinear(layer_name='l3',
-                         irange=.001,
+                         sparse_init=12,
                          dim=5000,
                          max_col_norm=1.)
 
 l4 = mlp.RectifiedLinear(layer_name='l4',
-                         irange=.001,
+                         sparse_init=12,
                          dim=5000,
                          max_col_norm=1.)
 
 output = mlp.HingeLoss(layer_name='y',
                        n_classes=2,
-                       irange=.001)
+                       irange=.0001)
 
+#output = mlp.Softmax(layer_name='y',
+#                     n_classes=2,
+#                     irange=.005)
 
-layers = [l1, l2, l3, l4, output]
+layers = [l1, l2, l3, output]
 
 mdl = mlp.MLP(layers,
               input_space=in_space)
 
-lr = .01
+lr = .0001
 epochs = 100
-trainer = sgd.SGD(learning_rate=.01,
+trainer = sgd.SGD(learning_rate=lr,
                   batch_size=128,
                   learning_rule=learning_rule.Momentum(.5),
                   # Remember, default dropout is .5
@@ -67,7 +70,7 @@ watcher = best_params.MonitorBasedSaveBest(
     channel_name='train_y_misclass',
     save_path='saved_clf.pkl')
 
-velocity = learning_rule.MomentumAdjustor(final_momentum=.9,
+velocity = learning_rule.MomentumAdjustor(final_momentum=.6,
                                           start=1,
                                           saturate=250)
 
